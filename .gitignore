@@ -1,0 +1,22 @@
+# لقطات أدوات التطوير / الاختبار (نستخدم docs/screenshots في التوثيق)
+artifacts/
+
+# نظام التشغيل والمحرر
+.DS_Store
+Thumbs.db
+*.swp
+.vscode/
+.idea/
+
+# سجلات وبيئات محلية
+*.log
+.env
+.env.*
+
+# مخرجات بناء محتملة مستقبلًا
+node_modules/
+dist/
+build/
+
+# ملفات مضغوطة
+*.zip

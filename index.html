@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>غزوة الكثبان — لعبة قتال الزعماء</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%231a1113'/%3E%3Ccircle cx='50' cy='48' r='25' fill='%23ffcf6b'/%3E%3Cpath d='M0 74 Q28 60 54 76 T100 70 V100 H0Z' fill='%23b9773a'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <main id="shell">
+    <div class="frame">
+      <!-- ============ لوحة الرسم: كل رسومات اللعبة هنا ============ -->
+      <canvas id="game" width="1280" height="720" aria-label="ساحة اللعبة"></canvas>
+
+      <!-- ============ الواجهة أثناء اللعب (HUD) ============ -->
+      <div id="hud" class="hidden" aria-hidden="true">
+        <div class="hud-top">
+          <!-- لوحة اللاعب -->
+          <div class="hud-player glass">
+            <div class="portrait">🗡️</div>
+            <div class="bars">
+              <div class="bar hp"><span id="hp-fill"></span><b id="hp-text">100 / 100</b></div>
+              <div class="bar energy"><span id="energy-fill"></span><b id="energy-text">100</b></div>
+            </div>
+          </div>
+
+          <!-- شريط الزعيم -->
+          <div class="hud-boss">
+            <div class="boss-title">
+              <span id="boss-name">حارس الرمال</span>
+              <span id="boss-phase" class="phase-tag">المرحلة 1</span>
+            </div>
+            <div class="boss-bar"><span id="boss-fill"></span></div>
+            <div class="boss-hp"><b id="boss-hp-text">620 / 620</b></div>
+          </div>
+
+          <!-- العملات والمرحلة -->
+          <div class="hud-meta glass">
+            <div class="meta-line"><span>🪙</span><b id="coin-text">0</b></div>
+            <div class="meta-line small">المرحلة <b id="stage-text">1 / 3</b></div>
+          </div>
+        </div>
+
+        <!-- شريط المهارات -->
+        <div class="hud-bottom">
+          <div class="skill" id="skill-dash">
+            <div class="cd" id="dash-cd"></div>
+            <span class="key">Shift</span>
+            <span class="label">تفادي</span>
+            <span class="cdnum" id="dash-cdnum"></span>
+          </div>
+          <div class="skill" id="skill-shield">
+            <div class="cd" id="shield-cd"></div>
+            <span class="key">Q</span>
+            <span class="label">درع رملي</span>
+            <span class="cost">35</span>
+            <span class="cdnum" id="shield-cdnum"></span>
+          </div>
+          <div class="skill" id="skill-lightning">
+            <div class="cd" id="lightning-cd"></div>
+            <span class="key">E</span>
+            <span class="label">ضربة برقية</span>
+            <span class="cost">45</span>
+            <span class="cdnum" id="lightning-cdnum"></span>
+          </div>
+          <div class="skill static">
+            <span class="key">J</span>
+            <span class="label">هجوم</span>
+          </div>
+        </div>
+
+        <div class="hud-hint">Esc — إيقاف مؤقت</div>
+        <div id="banner" class="banner"></div>
+        <div id="hurt-vignette" class="hurt-vignette"></div>
+      </div>
+
+      <!-- ============ الشاشات والقوائم ============ -->
+      <div id="overlay">
+        <!-- القائمة الرئيسية -->
+        <section id="screen-menu" class="screen open">
+          <div class="panel menu-panel">
+            <div class="crest">☀</div>
+            <h1>غزوة الكثبان</h1>
+            <p class="tagline">ثلاثة زعماء… صحراء واحدة… لا رجعة.</p>
+            <div class="menu-actions">
+              <button class="btn primary" data-action="start">بدء اللعبة</button>
+              <button class="btn" data-action="shop">ترقية الشخصية</button>
+              <button class="btn" data-action="settings">الإعدادات</button>
+            </div>
+            <div class="menu-foot">
+              <span id="menu-coins">🪙 0</span>
+              <span id="menu-wins">🏆 0 انتصار</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- لوحة الترقيات -->
+        <section id="screen-shop" class="screen">
+          <div class="panel shop-panel">
+            <header class="panel-head">
+              <div>
+                <h2>لوحة الترقيات</h2>
+                <p class="muted">استثمر عملاتك لتصبح أقوى قبل المعركة التالية.</p>
+              </div>
+              <div class="coin-chip">🪙 <b id="shop-coins">0</b></div>
+            </header>
+            <div id="shop-grid" class="shop-grid"></div>
+            <footer class="panel-foot">
+              <button class="btn ghost" data-action="shop-back">رجوع</button>
+              <span class="hint">تُحفظ الترقيات تلقائيًا في متصفحك.</span>
+            </footer>
+          </div>
+        </section>
+
+        <!-- الإعدادات -->
+        <section id="screen-settings" class="screen">
+          <div class="panel settings-panel">
+            <h2>الإعدادات</h2>
+            <label class="field">
+              <span>مستوى الصوت</span>
+              <input type="range" id="set-volume" min="0" max="100" step="5" />
+              <b id="set-volume-val">60%</b>
+            </label>
+            <label class="field switch">
+              <span>اهتزاز الشاشة</span>
+              <input type="checkbox" id="set-shake" />
+              <i class="toggle" aria-hidden="true"></i>
+            </label>
+            <div class="danger-zone">
+              <p>سيؤدي هذا إلى مسح العملات والترقيات والانتصارات نهائيًا.</p>
+              <button class="btn danger" data-action="reset">إعادة ضبط التقدم</button>
+            </div>
+            <footer class="panel-foot">
+              <button class="btn ghost" data-action="settings-back">رجوع</button>
+            </footer>
+          </div>
+        </section>
+
+        <!-- إيقاف مؤقت -->
+        <section id="screen-pause" class="screen">
+          <div class="panel small-panel">
+            <h2>توقف مؤقت</h2>
+            <p class="muted">الصحراء تنتظر…</p>
+            <div class="stack">
+              <button class="btn primary" data-action="resume">متابعة</button>
+              <button class="btn" data-action="restart">إعادة المرحلة</button>
+              <button class="btn ghost" data-action="to-menu">القائمة الرئيسية</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- إنهاء المرحلة -->
+        <section id="screen-stageclear" class="screen">
+          <div class="panel result-panel">
+            <p class="eyebrow">تم كسر الزعيم</p>
+            <h2 id="clear-boss">حارس الرمال</h2>
+            <div class="reward-row">
+              <div><span>مكافأة</span><b id="clear-reward">+0</b></div>
+              <div><span>رصيدك</span><b id="clear-coins">0</b></div>
+            </div>
+            <p class="muted" id="clear-note">المرحلة التالية: ملك العقارب</p>
+            <div class="result-actions">
+              <button class="btn primary" data-action="next-stage">المرحلة التالية</button>
+              <button class="btn" data-action="shop-clear">ترقية الشخصية</button>
+              <button class="btn ghost" data-action="to-menu">القائمة الرئيسية</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- نهاية اللعبة -->
+        <section id="screen-gameover" class="screen">
+          <div class="panel result-panel danger">
+            <p class="eyebrow">سقط البطل</p>
+            <h2>نهاية اللعبة</h2>
+            <p class="muted" id="over-stage">لقد هزمك حارس الرمال.</p>
+            <div class="reward-row">
+              <div><span>المرحلة</span><b id="over-stage-num">1 / 3</b></div>
+              <div><span>عملات الرحلة</span><b id="over-coins">0</b></div>
+            </div>
+            <div class="result-actions">
+              <button class="btn primary" data-action="retry">إعادة المحاولة</button>
+              <button class="btn" data-action="shop-gameover">ترقية الشخصية</button>
+              <button class="btn ghost" data-action="to-menu">القائمة الرئيسية</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- شاشة الفوز -->
+        <section id="screen-victory" class="screen">
+          <div class="panel result-panel victory">
+            <div class="crest small">✦</div>
+            <p class="eyebrow">انتصرت</p>
+            <h2>الصحراء تعرف اسمك</h2>
+            <p class="muted">لقد هزمت الزعماء الثلاثة وأصبحت أسطورة الكثبان.</p>
+            <div class="reward-row three">
+              <div><span>عملات الرحلة</span><b id="win-coins">0</b></div>
+              <div><span>الزمن</span><b id="win-time">00:00</b></div>
+              <div><span>الانتصارات</span><b id="win-count">0</b></div>
+            </div>
+            <div class="result-actions">
+              <button class="btn primary" data-action="play-again">رحلة جديدة</button>
+              <button class="btn" data-action="shop-victory">ترقية الشخصية</button>
+              <button class="btn ghost" data-action="to-menu">القائمة الرئيسية</button>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <p class="under-hint">
+      التحكم: A / D أو الأسهم للحركة • Space قفز • Shift تفادي • J هجوم • Q درع رملي • E ضربة برقية • Esc إيقاف
+    </p>
+  </main>
+
+  <!-- ترتيب التحميل مهم: كل ملف يضيف إلى مساحة الاسم DG -->
+  <script src="js/utils.js"></script>
+  <script src="js/save.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/input.js"></script>
+  <script src="js/effects.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/bosses.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
